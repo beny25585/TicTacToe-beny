@@ -72,7 +72,6 @@ export default function Game() {
       if (winner) return;
       setTime((time) => {
         if (time === 0) {
-          console.log("Timer:", time);
           setIsXNext(!isXNext);
           return 10;
         }
@@ -84,7 +83,6 @@ export default function Game() {
   }, [isXNext]);
 
   function handleSquareClick(index: number) {
-    console.log("Square clicked:", index);
     if (winner) {
       return;
     }
