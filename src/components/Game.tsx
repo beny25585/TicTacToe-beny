@@ -1,119 +1,106 @@
 import { useEffect, useState } from "react";
 import Board from "./Board";
 
+const WINNING_LINES: number[][] = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
+];
+
+//check for winner
+function calculateWinner(squares: (string | null)[]): string | null {
+  for (const line of WINNING_LINES) {
+    const [a, b, c] = line;
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
+    }
+  }
+  return null;
+}
+const resetTime = 10;
+const PLAYER_X = "X";
+const PLAYER_O = "O";
+
 export default function Game() {
   const [squares, setSquares] = useState<(string | null)[]>(
     Array(9).fill(null)
   );
+
   const [isXNext, setIsXNext] = useState(true);
-  const [winner, setWinner] = useState(false);
-  const [time, setTime] = useState(10);
-  const PLAYER1 = "X";
-  const PLAYER2 = "O";
-  let NEXT_PLAYER = isXNext ? PLAYER1 : PLAYER2;
-  let CURRENT_PLAYER = isXNext ? PLAYER2 : PLAYER1;
+  const [time, setTime] = useState(resetTime);
 
-  //check for winner
-  const calculateWinner = (squares: (string | null)[]) => {
-    if (!squares) return;
+  const winner = calculateWinner(squares);
+  const isDraw = !winner && squares.every((square) => square !== null);
+  const nextPlayer = isXNext ? PLAYER_X : PLAYER_O;
+  const gameOver = Boolean(winner) || isDraw;
 
-    if (squares[0] && squares[0] === squares[1] && squares[0] === squares[2]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[3] && squares[3] === squares[4] && squares[3] === squares[5]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[6] && squares[6] === squares[7] && squares[6] === squares[8]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[0] && squares[0] === squares[3] && squares[0] === squares[6]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[1] && squares[1] === squares[4] && squares[1] === squares[7]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[2] && squares[2] === squares[5] && squares[2] === squares[8]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[0] && squares[0] === squares[4] && squares[0] === squares[8]) {
-      setWinner(true);
-      return;
-    }
-    if (squares[2] && squares[2] === squares[4] && squares[2] === squares[6]) {
-      setWinner(true);
-      return;
-    }
-
-    return;
-  };
-
-  //bord is full
-  const isBoardFull = (squares: (string | null)[]) => {
-    if (winner) return;
-    return squares.every((square) => square !== null);
-  };
-
-  //PlayAgain function
-  const PlayAgain = () => {
+  //resetGame  function
+  const resetGame = () => {
     setSquares(Array(9).fill(null));
     setIsXNext(true);
-    setTime(10);
-    setWinner(false);
+    setTime(resetTime);
   };
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (winner) return;
-      setTime((time) => {
-        if (time === 0) {
-          setIsXNext(!isXNext);
-          return 10;
-        }
-        return time - 1;
-      });
+    if (gameOver) return;
+
+    const timerId = setInterval(() => {
+      setTime((prev) => prev - 1);
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [isXNext]);
+    return () => clearInterval(timerId);
+  }, [gameOver]);
+
+  useEffect(() => {
+    if (gameOver) return;
+
+    if (time < 0) return;
+
+    if (time === 0) {
+      setIsXNext((turn) => !turn);
+      setTime(10);
+    }
+  }, [time, gameOver]);
 
   function handleSquareClick(index: number) {
-    if (winner) {
+    if (gameOver || squares[index]) {
       return;
     }
 
-    if (squares[index]) {
-      return;
-    }
+    const currentPlayer = isXNext ? PLAYER_X : PLAYER_O;
+
+    setSquares((oldSquares) => {
+      const newSquares = [...oldSquares];
+      newSquares[index] = currentPlayer;
+      return newSquares;
+    });
+
     //end turn
-    squares[index] = NEXT_PLAYER;
-    calculateWinner(squares);
-    setSquares([...squares]);
-    setIsXNext(!isXNext);
-    setTime(10);
+    setIsXNext((prevIsXNext) => !prevIsXNext);
+    setTime(resetTime);
   }
 
   return (
     <div className="game-container">
       <h1>Tic Tac Toe</h1>
       <Board squares={squares} onSquareClick={handleSquareClick} />
-      <p>Next Player: {NEXT_PLAYER}</p>
-      <p>{time}</p>
+      <p>Next Player: {nextPlayer}</p>
+      <p>Time left:{time}</p>
       {winner && (
         <div>
-          <p>the winner is: {CURRENT_PLAYER}</p>
-          <button onClick={PlayAgain}>restart</button>
+          <p>the winner is: {winner}</p>
+          <button onClick={resetGame}>restart</button>
         </div>
       )}
-      {isBoardFull(squares) && (
+      {isDraw && (
         <div>
           <p>It's a draw!</p>
-          <button onClick={PlayAgain}>Play Again</button>
+          <button onClick={resetGame}>Play Again</button>
         </div>
       )}
     </div>
